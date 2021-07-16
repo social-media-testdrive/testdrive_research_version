@@ -1,10 +1,10 @@
 const User = require('./models/User.js');
 const Script = require('./models/Script.js');
 const Class = require('./models/Class.js');
-const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const dotenv = require('dotenv');
 dotenv.config({ path: '.env' });
 
 // Console.log color shortcuts
@@ -79,24 +79,153 @@ function compareTimestamps(a,b) {
   This is calculated by taking the difference between timestamps of sequential
   page visits. Page visits are recorded in the pageLog field.
   Assumptions:
+    - pageLog is already sorted in order of increasing timestamps.
     - Final reported times are in seconds.
     - Values are rounded to the nearest integer using Math.round() at the end of
       the calcuation.
     - Sections are defined the same way as the progress bar, using
       progressDataA.json and progressDataB.json.
   Parameters:
+    - sectionInformation: Object - this is modified by this function, and will
+        contain the final calculations.
+    - sectionJson: Object - used to match pages to their corresponding sections.
+    - pageLog: [Object] - list of page visits by this user, sorted by time order.
+    - module_name: String - the module name to filter by.
+  Returns:
+    This function does not return anything.
+    This function modifies the sectionInformation parameter.
+*/
+function calculateAndModifyTimeSpent(sectionInformation, sectionJson, pageLog, module_name) {
+  for (let i=0, l=pageLog.length-1; i<l; i++) {
+    // Skip page visits that were not within the specified module.
+    if ((!pageLog[i].subdirectory2) || (pageLog[i].subdirectory2 !== module_name)) {
+      continue;
+    }
+    // Get the time spent on this page by taking the difference between the
+    // next recorded page visit.
+    let timeDurationOnPage = (pageLog[i+1].time - pageLog[i].time)
+    // Only include times that are shorter than 30 minutes (1800000 milliseconds).
+    if (timeDurationOnPage > 1800000) {
+      continue;
+    }
+    // Add the page time to the appropriate section's total time.
+    const sectionNumber = sectionJson[pageLog[i].subdirectory1];
+    if (sectionNumber === "1") {
+      sectionInformation.timeSpent.tt += timeDurationOnPage;
+    } else if (sectionNumber === "2") {
+      sectionInformation.timeSpent.ga += timeDurationOnPage;
+    } else if (sectionNumber === "3") {
+      sectionInformation.timeSpent.fp += timeDurationOnPage;
+    } else if (sectionNumber === "4") {
+      sectionInformation.timeSpent.rf += timeDurationOnPage;
+    } else {
+      continue;
+    }
+  }
+  // Convert each number from milliseconds to seconds, and round the final
+  // number to the nearest integer with Math.round().
+  for(const section of Object.keys(sectionInformation.timeSpent)) {
+    const sectionTimeInSeconds = sectionInformation.timeSpent[section]/1000;
+    sectionInformation.timeSpent[section] = Math.round(sectionTimeInSeconds);
+  }
+}
+
+/*
+  Calculates the frequency that the user jumps between various module sections.
+  A jump is identified by comparing each pageLog entry's section number with
+  it's previous adjacent entry section number.
+  Assumptions:
+    - pageLog is already sorted in order of increasing timestamps.
+    - Sections are defined the same way as the progress bar, using
+      progressDataA.json and progressDataB.json.
+  Parameters:
+    - sectionInformation: Object - this is modified by this function, and will
+        contain the final calculations.
+    - sectionJson: Object - used to match pages to their corresponding sections.
+    - pageLog: [Object] - list of page visits by this user, sorted by time order.
+    - module_name: String - the module name to filter by.
+  Returns:
+    This function does not return anything.
+    This function modifies the sectionInformation parameter.
+*/
+function calculateAndModifyJumpFrequency(sectionInformation, sectionJson, pageLog, module_name) {
+  if (pageLog.length < 2) {
+    return;
+  }
+  for (let i=1, l=pageLog.length-1; i<l; i++) {
+    // Skip page visits that were not within the specified module.
+    if ((!pageLog[i].subdirectory2) || (pageLog[i].subdirectory2 !== module_name)) {
+      continue;
+    }
+    if ((!pageLog[i-1].subdirectory2) || (pageLog[i-1].subdirectory2 !== module_name)) {
+      continue;
+    }
+    // Determine if this page sequence matches any of the predefined jump types.
+    for (const jumpType of Object.keys(sectionInformation.jumpFrequency)) {
+      const fromSectionToCompare = sectionJson[pageLog[i-1].subdirectory1];
+      const toSectionToCompare = sectionJson[pageLog[i].subdirectory1];
+      if (
+        fromSectionToCompare === sectionInformation.jumpFrequency[jumpType].fromSection
+        && toSectionToCompare === sectionInformation.jumpFrequency[jumpType].toSection
+      ){
+        // This page sequence matches the current jump type. Increment its count.
+        sectionInformation.jumpFrequency[jumpType].count++;
+      }
+    }
+  }
+};
+
+/*
+  Calculates key information relating to page sections: the time spent in each
+  section, as well as the freuency of jumps between certain sections.
+  Parameters:
     - user: Object - the user data from one study participant.
     - module_name: String - the module name to filter by.
   Returns:
-    - timeSpentPerSection: Object - object with properties representing the time
-        spent (in seconds) in each section of the module.
+    - sectionInformation: Object - object with properties representing the time
+        spent (in seconds) in each section of the module, and the frequency
+        of jumps betwen various sections in the module.
 */
-async function getTimeSpentPerSection(user, module_name) {
-  const timeSpentPerSection = {
-    tt: 0, // tutorial => section 1
-    ga: 0, // guided activity => section 2
-    fp: 0, // freeplay => section 3
-    rf: 0 // reflection => section 4
+async function getSectionInformation(user, module_name) {
+  const sectionInformation = {
+    timeSpent: {
+      tt: 0, // The time a learner spent on the tutorial (tt) section
+      ga: 0, // The time a learner spent on the guided activity (ga) section
+      fp: 0, // The time a learner spent on the freeplay (fp) section
+      rf: 0, // The time a learner spent on the reflection (rf) section
+    },
+    jumpFrequency: {
+      ga_to_tt: {
+        count: 0, // Frequency of jumping from the ga section to the tt section
+        fromSection: '2',
+        toSection: '1'
+      },
+      fp_to_tt: {
+        count: 0, // Frequency of jumping from the fp section to the tt section
+        fromSection: '3',
+        toSection: '1'
+      },
+      rf_to_tt: {
+        count: 0, // Frequency of jumping from the rf section to the tt section
+        fromSection: '4',
+        toSection: '1'
+      },
+      fp_to_ga: {
+        count: 0, // Frequency of jumping from the fp section to the ga section
+        fromSection: '3',
+        toSection: '2'
+      },
+      rf_to_ga: {
+        count: 0, // Frequency of jumping from the rf section to the ga section
+        fromSection: '4',
+        toSection: '2'
+      },
+      rf_to_fp: {
+        count: 0,  // Frequency of jumping from the rf section to the fp section
+        fromSection: '4',
+        toSection: '3'
+      }
+    }
   };
   const pageLog = user.pageLog;
   // Need to get the mappings between module pages and section numbers.
@@ -130,39 +259,10 @@ async function getTimeSpentPerSection(user, module_name) {
   }
   // Sort the pageLog array by increasing time.
   pageLog.sort(compareTimestamps);
-  for (let i=0, l=pageLog.length-1; i<l; i++) {
-    // Skip page visits that were not within the specified module.
-    if ((!pageLog[i].subdirectory2) || (pageLog[i].subdirectory2 !== module_name)) {
-      continue;
-    }
-    // Get the time spent on this page by taking the difference between the
-    // next recorded page visit.
-    let timeDurationOnPage = (pageLog[i+1].time - pageLog[i].time)
-    // Skip any page times that are longer than 30 minutes (1800000 milliseconds).
-    if(timeDurationOnPage > 1800000) {
-      continue;
-    }
-    // Add the page time to the appropriate section's total time.
-    const sectionNumber = sectionJson[pageLog[i].subdirectory1];
-    if (sectionNumber === "1") {
-      timeSpentPerSection.tt += timeDurationOnPage;
-    } else if (sectionNumber === "2") {
-      timeSpentPerSection.ga += timeDurationOnPage;
-    } else if (sectionNumber === "3") {
-      timeSpentPerSection.fp += timeDurationOnPage;
-    } else if (sectionNumber === "4") {
-      timeSpentPerSection.rf += timeDurationOnPage;
-    } else {
-      continue;
-    }
-  }
-  // Convert each number from milliseconds to seconds, and round the final
-  // number to the nearest integer with Math.round().
-  for(const section of Object.keys(timeSpentPerSection)) {
-    const sectionTimeInSeconds = timeSpentPerSection[section]/1000;
-    timeSpentPerSection[section] = Math.round(sectionTimeInSeconds);
-  }
-  return timeSpentPerSection;
+  // Calculate data and modify sectionInformation.
+  calculateAndModifyTimeSpent(sectionInformation, sectionJson, pageLog, module_name);
+  calculateAndModifyJumpFrequency(sectionInformation, sectionJson, pageLog, module_name);
+  return sectionInformation;
 };
 
 /*
@@ -279,8 +379,13 @@ function getReflectionAttemptCounts(user, module_name) {
 }
 
 async function getDataExport() {
-  const outputFilepath = 'outputFiles/exportData/testExport.csv';
-  console.log(color_success, "DB connection established.")
+  console.log(`Successfully connected to db.`)
+  console.log(`Starting the data export script...`)
+  const currentDate = new Date();
+  const outputFilename = `outomeEvaluation-dataExport`
+    +`.${currentDate.getMonth()}-${currentDate.getDate()}-${currentDate.getFullYear()}`
+    +`.${currentDate.getHours()}-${currentDate.getMinutes()}-${currentDate.getSeconds()}`;
+  const outputFilepath = `outputFiles/exportData/${outputFilename}.csv`;
   const csvWriter = createCsvWriter({
     path: outputFilepath,
     header: [
@@ -308,10 +413,7 @@ async function getDataExport() {
     ]
   });
   const records = [];
-  console.log(color_start, `Searching for student accounts...`)
   const users = await User.find({isStudent: true}).exec();
-  console.log(`${users.length} student accounts found.`)
-  console.log(color_start, `Interpreting data for each student account...`);
   // For each student found by the query
   for (const user of users) {
     const className = await getClassNameForUser(user);
@@ -323,25 +425,31 @@ async function getDataExport() {
         username: username
       };
       const assignedModule = user.assignedModules[`module${i}`];
-      const timeSpentPerSection = await getTimeSpentPerSection(user, assignedModule);
+      const sectionInformation = await getSectionInformation(user, assignedModule);
       const activityCounts = getActivityCountsFP(user, assignedModule);
       const reflectionAttemptCounts = getReflectionAttemptCounts(user, assignedModule);
       record.module_name = assignedModule;
-      record.time_spent_tt = timeSpentPerSection.tt;
-      record.time_spent_ga = timeSpentPerSection.ga;
-      record.time_spent_fp = timeSpentPerSection.fp;
-      record.time_spent_rf = timeSpentPerSection.rf;
+      record.time_spent_tt = sectionInformation.timeSpent.tt;
+      record.time_spent_ga = sectionInformation.timeSpent.ga;
+      record.time_spent_fp = sectionInformation.timeSpent.fp;
+      record.time_spent_rf = sectionInformation.timeSpent.rf;
       record.liked_post_fp = activityCounts.likeCount;
       record.flagged_post_fp = activityCounts.flagCount;
       record.commented_post_fp = activityCounts.commentCount;
       record.checkbox_rf = reflectionAttemptCounts.checkbox_rf;
       record.open_ended_rf = reflectionAttemptCounts.open_ended_rf;
-      if (username === "nervousMachine"){
-        console.log(record);
-      }
+      record.ga_to_tt = sectionInformation.jumpFrequency.ga_to_tt.count;
+      record.fp_to_tt = sectionInformation.jumpFrequency.fp_to_tt.count;
+      record.rf_to_tt = sectionInformation.jumpFrequency.rf_to_tt.count;
+      record.fp_to_ga = sectionInformation.jumpFrequency.fp_to_ga.count;
+      record.rf_to_ga = sectionInformation.jumpFrequency.rf_to_ga.count;
+      record.rf_to_fp = sectionInformation.jumpFrequency.rf_to_fp.count;
+      records.push(record);
     }
   }
-  console.log(`Data export completed. File exported to ${outputFilepath}. \nClosing db.`);
+  await csvWriter.writeRecords(records);
+  console.log(color_success,`...Data export completed.\nFile exported to: ${outputFilepath}`);
+  console.log('Closing db connection.')
   db.close();
 }
 
