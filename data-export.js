@@ -177,7 +177,7 @@ function calculateAndModifyJumpFrequency(sectionInformation, sectionJson, pageLo
 
 /*
   Calculates key information relating to page sections: the time spent in each
-  section, as well as the freuency of jumps between certain sections.
+  section, as well as the frequency of jumps between certain sections.
   Parameters:
     - user: Object - the user data from one study participant.
     - module_name: String - the module name to filter by.
@@ -368,7 +368,7 @@ function getReflectionAttemptCounts(user, module_name) {
         break;
       }
       default: {
-        // There are other response types, but they are not expeted to be relevant
+        // There are other response types, but they are not expected to be relevant
         // in the outcome evaluation study.
         console.log(color_error, `WARNING: There was an unexpected reflection response type for ${questionNumber} in module ${module_name}: type ${reflectionResponse.type}`);
         break;
@@ -377,6 +377,39 @@ function getReflectionAttemptCounts(user, module_name) {
   }
   return reflectionAttemptCounts;
 }
+
+/*
+  Determines the number of times the user clicks the “back” button on the text bubbles on the tutorial pages of given module
+  Parameters:
+    - user: Object - the user data from one study participant.
+    - module_name: String - the module name to filter by.
+  Returns:
+    - backTTCounts: Integer - the number of times the "back" button is clicked
+*/
+function getback_TTCounts(user, module_name) {
+  const introjsStepActions = user.introjsStepAction;
+
+  /* Example of introjsStepAction 
+    subdirectory1: String, // which page the user is on
+    subdirectory2: String, // which module the user is on
+    stepNumber: Number, // which step this action is on (steps start from 0)
+    viewDuration: Number, // how long the user was on this step (milliseconds)
+    absoluteStartTime: Date // time the step opened in the real world
+  */
+
+  const moduleTutorialStepActions = introjsStepActions.filter(action => action.subdirectory2 === module_name && action.subdirectory1 === 'tutorial');
+  
+  let index = -1;
+  let backTTCounts = 0;
+
+  for (const step of moduleTutorialStepActions) {
+    if (step.stepNumber < index ){
+      backTTCounts++;
+    }
+    index = step.stepNumber;
+  } 
+  return backTTCounts;
+};
 
 async function getDataExport() {
   console.log(`Successfully connected to db.`)
@@ -409,7 +442,8 @@ async function getDataExport() {
       {id: 'rf_to_tt', title: 'RF_to_TT'},
       {id: 'fp_to_ga', title: 'FP_to_GA'},
       {id: 'rf_to_ga', title: 'RF_to_GA'},
-      {id: 'rf_to_fp', title: 'RF_to_FP'}
+      {id: 'rf_to_fp', title: 'RF_to_FP'},
+      {id: 'back_tt', title: 'Back_TT'}
     ]
   });
   const records = [];
@@ -428,6 +462,8 @@ async function getDataExport() {
       const sectionInformation = await getSectionInformation(user, assignedModule);
       const activityCounts = getActivityCountsFP(user, assignedModule);
       const reflectionAttemptCounts = getReflectionAttemptCounts(user, assignedModule);
+      const back_TTCounts = getback_TTCounts(user, assignedModule) ;
+
       record.module_name = assignedModule;
       record.time_spent_tt = sectionInformation.timeSpent.tt;
       record.time_spent_ga = sectionInformation.timeSpent.ga;
@@ -444,6 +480,7 @@ async function getDataExport() {
       record.fp_to_ga = sectionInformation.jumpFrequency.fp_to_ga.count;
       record.rf_to_ga = sectionInformation.jumpFrequency.rf_to_ga.count;
       record.rf_to_fp = sectionInformation.jumpFrequency.rf_to_fp.count;
+      record.back_tt = back_TTCounts;
       records.push(record);
     }
   }
