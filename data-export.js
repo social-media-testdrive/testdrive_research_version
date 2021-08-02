@@ -411,6 +411,133 @@ function getback_TTCounts(user, module_name) {
   return backTTCounts;
 };
 
+/*
+  Determines the number of "1"s in number n (in binary representation)
+  Helper function for getrec_act_GACounts().
+*/
+function countSetBits(n) {
+  var count = 0;
+  while (n) {
+    count += n & 1;
+    n >>= 1;
+  }
+  return count;
+}
+
+/*
+  Determines the count of recommended actions the user takes in a module
+  Parameters:
+    - user: Object - the user data from one study participant.
+    - module_name: String - the module name to filter by.
+  Returns:
+    - rec_act_GACounts: Integer - the number of recommended actions taken by the user in the module
+*/
+async function getrec_act_GACounts(user, module_name) {
+  // get module recommended actions
+  const recActions = await getSectionJsonFromFile("./public2/json/guidedActivityRecActions.json")
+  // get user's guidedActivityActions (list of guidedActivityAction objects)
+  const gaActions = user.guidedActivityAction;
+
+  /* Example of guidedActivityAction
+    post: String, // Which post did the user interact with? ex: "cyberbullying_sim_post1"
+    modual: String, // which lesson mod did this take place in?
+    startTime: 0, // (not used in TestDrive)
+    liked: {type: Boolean, default: false}, // did the user like this post in the feed?
+    flagged: {type: Boolean, default: false}, // did the user flag this post in the feed?
+    flagTime  : [Date], // list of timestamps when the user flagged the post
+    likeTime  : [Date], //list of timestamps when the user liked the post
+    replyTime  : [Date], // list of timestamps when the user left a comment on the post
+
+    // popup modal info: one per open
+    modal: [new Schema({
+      modalName: String, // name of Modal
+      modalOpened: {type: Boolean, default: false}, // did the user open the modal?
+      modalOpenedTime: Number, // timestamp the user opened the modal
+      modalViewTime: Number, // Duration of time that the modal was open (in milliseconds)
+      modalCheckboxesCount: Number, // How many checkboxes are present in the modal
+      modalCheckboxesInput: Number, // Number which, when converted into binary format, corresponds to which checkboxes were checked
+      modalDropdownCount: Number, // How many accordion dropdown triangles are present in the modal
+      modalDropdownClick: Number, // Number which, when converted into a binary format, corresponds to which triangles were clicked
+    }
+
+    // comment info on an actor's post (fake post): one per comment
+    comments: [new Schema({
+      comment: String, // Which comment did the user interact with? ex: "cyberbullying_sim_post1_comment1"
+      liked: {type: Boolean, default: false}, // Is the comment liked ?
+      flagged: {type: Boolean, default: false}, // Is the comment flagged?
+      flagTime  : [Date], // list of timestamps when the user flagged the comment
+      likeTime  : [Date], // list of timestamps when the user liked the comment
+
+      new_comment: {type: Boolean, default: false}, // Is this a new comment?
+      new_comment_id: String, // Number, starting at 0, used to ID user-made comments (starts at 0)
+      comment_body: String, // Text of comment
+      absTime: Date, // Real-life timestamp of when the comment was made
+    }
+  */
+
+  var rec_act_GACounts = 0
+
+  const module_recActions = recActions[module_name] // recommended actions that should be taken in the module
+  const module_gaActions = gaActions.filter(action => action.modual === module_name); // user's actions taken in module
+  
+  // loop through each post. For each post, check if user completes the recommended actions for that post
+  for (var postID in module_recActions){
+      if (module_recActions.hasOwnProperty(postID)){
+        // get recommended actions for the post
+        const post_recAction = module_recActions[postID] 
+        // find corresponding post in user's actions
+        const post_gaAction = module_gaActions.find(action => action.post === postID)
+
+        if (post_gaAction === undefined){ // User did not conduct any actions on the post
+          continue; 
+        }
+
+        if (post_recAction["commentOnPost"]) {
+          for (const commentObj of post_gaAction["comments"]) {
+            if (commentObj["new_comment"]) { // code currently already doesn't allow a comment without text to be logged
+              rec_act_GACounts += 1;
+              break; // only count 1 comment
+            }
+          }
+        }
+
+        if (post_recAction["flagPost"]){
+          rec_act_GACounts += post_gaAction["flagged"] ? 1 : 0
+        }
+
+        for (const commentID of post_recAction["flagComments"]){
+          const comment = post_gaAction["comments"].find(commentObj => commentObj.comment === commentID)
+          if (comment === undefined){ // User did not conduct any actions on the comment
+            continue;
+          }
+          rec_act_GACounts += comment["flagged"] ? 1 : 0
+        }
+
+        for (var modalName in post_recAction["modals"]){
+          const modal_recActions = post_recAction["modals"][modalName]
+
+          const modal_gaActions_reverse = post_gaAction["modal"].slice().reverse() // make copy & reverse, so we consider the most recent open of the modal
+          const modal = modal_gaActions_reverse.find(modalObj => modalObj.modalName === modalName)
+
+          if (modal === undefined){ // User did not interact with modal
+            continue;
+          }
+
+          for (var action in modal_recActions){
+            if (action === "modalDropdownClick" || action === "modalCheckboxesInput"){
+              const rec_num = parseInt(modal_recActions[action], 2)
+              const ga_num  = modal[action]
+              rec_act_GACounts += countSetBits(rec_num & ga_num)
+            } else {
+              rec_act_GACounts += (modal_recActions[action] === modal[action]) ? 1 : 0
+            }
+          }
+        }
+      }
+  }
+  return rec_act_GACounts;
+};
+
 async function getDataExport() {
   console.log(`Successfully connected to db.`)
   console.log(`Starting the data export script...`)
@@ -429,8 +556,6 @@ async function getDataExport() {
       {id: 'time_spent_ga', title: 'Time_Spent_GA'},
       {id: 'time_spent_fp', title: 'Time_Spent_FP'},
       {id: 'time_spent_rf', title: 'Time_Spent_RF'},
-      {id: 'rec_act_ga', title: 'Rec_act_GA'},
-      {id: 'corr_act_ga', title: 'Corr_act_GA'},
       {id: 'liked_post_fp', title: 'Liked_post_FP'},
       {id: 'flagged_post_fp', title: 'Flagged_post_FP'},
       {id: 'commented_post_fp', title: 'Commented_post_FP'},
@@ -443,7 +568,8 @@ async function getDataExport() {
       {id: 'fp_to_ga', title: 'FP_to_GA'},
       {id: 'rf_to_ga', title: 'RF_to_GA'},
       {id: 'rf_to_fp', title: 'RF_to_FP'},
-      {id: 'back_tt', title: 'Back_TT'}
+      {id: 'back_tt', title: 'Back_TT'},
+      {id: 'rec_act_ga', title: 'Rec_act_GA'}
     ]
   });
   const records = [];
@@ -462,7 +588,8 @@ async function getDataExport() {
       const sectionInformation = await getSectionInformation(user, assignedModule);
       const activityCounts = getActivityCountsFP(user, assignedModule);
       const reflectionAttemptCounts = getReflectionAttemptCounts(user, assignedModule);
-      const back_TTCounts = getback_TTCounts(user, assignedModule) ;
+      const back_TTCounts = getback_TTCounts(user, assignedModule);
+      const rec_act_GACounts = await getrec_act_GACounts(user, assignedModule);
 
       record.module_name = assignedModule;
       record.time_spent_tt = sectionInformation.timeSpent.tt;
@@ -481,6 +608,7 @@ async function getDataExport() {
       record.rf_to_ga = sectionInformation.jumpFrequency.rf_to_ga.count;
       record.rf_to_fp = sectionInformation.jumpFrequency.rf_to_fp.count;
       record.back_tt = back_TTCounts;
+      record.rec_act_ga = rec_act_GACounts;
       records.push(record);
     }
   }

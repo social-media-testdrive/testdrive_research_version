@@ -1,0 +1,155 @@
+{
+    "cyberbullying":{
+        "cyberbullying_sim_post1" :{
+            "commentOnPost": true,
+            "flagPost": false, 
+            "flagComments":[],
+            "modals": {}
+        },
+        "cyberbullying_sim_post3":{
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {}
+        },
+        "cyberbullying_sim_post4": {
+            "commentOnPost": true,
+            "flagPost": false,
+            "flagComments": [
+                "cyberbullying_sim_post4_comment1"
+            ],
+            "modals": {}
+        }
+    },
+    "digfoot": {
+        "digfoot_sim_post1": {
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals":{
+                "digfoot_simModal":{
+                    "modalCheckboxesInput": "11000",
+                    "modalOpened": true
+                }
+            }
+        },
+        "digfoot_sim_post2": {
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "digfoot_simModal":{
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "00001"
+                }
+            }
+        },
+        "digfoot_sim_post3": {
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "digfoot_simModal":{
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "11100"
+                }
+            }
+        }
+    },
+    "digital-literacy":{
+        "digital-literacy_sim_post1":{
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "digital-literacy_infoModal": {
+                    "modalOpened": true
+                }, 
+                "digital-literacy_articleModal": {
+                    "modalOpened": true,
+                    "modalDropdownClick": "1111"
+                }
+            }
+        },
+        "digital-literacy_sim_post3": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                "digital-literacy_articleModal": {
+                    "modalOpened": true,
+                    "modalDropdownClick": "1111"
+                },
+                "digital-literacy_flagModal":{
+                    "modalCheckboxesInput": "01100"
+                }
+            }
+        }
+    },
+    "targeted": {
+        "targeted_sim_post1": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                 "targeted_hideAdModal": {
+                    "modalOpened": true
+                },
+                "targeted_whySeeingAdModal": {
+                    "modalOpened": true
+                }
+            }
+        },
+        "targeted_sim_post3": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                "targeted_hideAdModal": {
+                    "modalOpened": true
+                },
+                "targeted_whySeeingAdModal": {
+                    "modalOpened": true
+                }
+            }
+        }
+    },
+    "phishing":{
+        "phishing_sim_post3":{
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {}
+        }
+    },
+    "esteem":{
+        "esteem_sim_post1":{
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "esteem_simPostModal1": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "001100000"
+                },
+                "esteem_simPostModal2":{
+                    "modalCheckboxesInput": "0001110"
+                }
+            }
+        },
+        "esteem_sim_post3":{
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "esteem_simPostModal1": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "001100000"
+                },
+                "esteem_simPostModal2": {
+                    "modalCheckboxesInput": "0001110"
+                }
+            }
+        }
+    }
+}

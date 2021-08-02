@@ -563,6 +563,8 @@ function _postUpdateFeedAction(req, user){
       modalInfo.modalViewTime = req.body.modalViewTime;
       modalInfo.modalCheckboxesCount = req.body.modalCheckboxesCount;
       modalInfo.modalCheckboxesInput = req.body.modalCheckboxesInput;
+      modalInfo.modalDropdownCount = req.body.modalDropdownCount;
+      modalInfo.modalDropdownClick = req.body.modalDropdownClick;
       userAction[feedIndex].modal.push(modalInfo);
   }
 
