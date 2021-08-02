@@ -1,0 +1,269 @@
+{
+    "cyberbullying": {
+        "4": {
+            "commentOnPost": true,
+            "flagPost": true,
+            "flagComments": ["1"],
+            "modals": {}
+        },
+        "5": {
+            "commentOnPost": true,
+            "flagPost": true,
+            "flagComments": ["2"],
+            "modals": {}
+        },
+        "11": {
+            "commentOnPost": true,
+            "flagPost": true,
+            "flagComments": ["1", "2"],
+            "modals": {}
+        },
+        "20":{
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": ["1", "2"],
+            "modals": {}
+        },
+        "7":{
+            "commentOnPost": true,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {}
+        }
+    },
+    "digfoot": {
+        "489": {
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "digfoot_normalPostModal": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "11100"
+                }
+            }
+        },
+        "490": {
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "digfoot_normalPostModal": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "11100"
+                }
+            }
+        },
+        "488": {
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "digfoot_normalPostModal": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "11000"
+                }
+            }
+        }
+    },
+    "digital-literacy": {
+        "292": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                "digital-literacy_articleModal": {
+                    "modalOpened": true,
+                    "modalDropdownClick": "1111"
+                }, 
+                "digital-literacy_flagModal":{
+                    "modalCheckboxesInput": "11100"
+                }
+            }
+        },
+        "293": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                "digital-literacy_articleModal": {
+                    "modalOpened": true,
+                    "modalDropdownClick": "1111"
+                },
+                "digital-literacy_flagModal": {
+                    "modalCheckboxesInput": "11110"
+                }
+            }
+        },
+        "295": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                "digital-literacy_articleModal": {
+                    "modalOpened": true,
+                    "modalDropdownClick": "1111"
+                },
+                "digital-literacy_flagModal": {
+                    "modalCheckboxesInput": "11110"
+                }
+            }
+        }
+    },
+    "targeted": {
+        "234": {
+            "topic": "Gaming",
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                "targeted_hideAdModal": {
+                    "modalOpened": true
+                },
+                "targeted_whyAdModal": {
+                    "modalOpened": true
+                }
+            }
+        },
+        "235": {
+            "topic": "Gaming",
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                "targeted_hideAdModal": {
+                    "modalOpened": true
+                },
+                "targeted_whyAdModal": {
+                    "modalOpened": true
+                }
+            }
+        },
+        "236": {
+            "topic": "Gaming",
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {
+                "targeted_hideAdModal": {
+                    "modalOpened": true
+                },
+                "targeted_whyAdModal": {
+                    "modalOpened": true
+                }
+            }
+        }
+    },
+    "phishing": {
+        "511": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {}
+        },
+        "516": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {}
+        },
+        "523": {
+            "commentOnPost": false,
+            "flagPost": true,
+            "flagComments": [],
+            "modals": {}
+        }
+    },
+    "esteem": {
+        "574": {
+            "topic": "Sports",
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "esteem_postModal1": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "001100000"
+                },
+                "esteem_postModal2": {
+                    "modalCheckboxesInput": "0001110"
+                }
+            }
+        },
+        "576": {
+            "topic": "Sports",
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "esteem_postModal1": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "001100000"
+                },
+                "esteem_postModal2": {
+                    "modalCheckboxesInput": "0001110"
+                }
+            }
+        },
+        "592": {
+            "topic": "Music",
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "esteem_postModal1": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "001100000"
+                },
+                "esteem_postModal2": {
+                    "modalCheckboxesInput": "0001110"
+                }
+            }
+        },
+        "594": {
+            "topic": "Music",
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "esteem_postModal1": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "001100000"
+                },
+                "esteem_postModal2": {
+                    "modalCheckboxesInput": "0001110"
+                }
+            }
+        },
+        "583": {
+            "topic": "Gaming",
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "esteem_postModal1": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "001100000"
+                },
+                "esteem_postModal2": {
+                    "modalCheckboxesInput": "0001110"
+                }
+            }
+        },
+        "585": {
+            "topic": "Gaming",
+            "commentOnPost": false,
+            "flagPost": false,
+            "flagComments": [],
+            "modals": {
+                "esteem_postModal1": {
+                    "modalOpened": true,
+                    "modalCheckboxesInput": "001100000"
+                },
+                "esteem_postModal2": {
+                    "modalCheckboxesInput": "0001110"
+                }
+            }
+        }
+    }
+}
