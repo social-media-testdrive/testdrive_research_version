@@ -39,10 +39,6 @@ function recordModalInputs(modalNameAttrStr) {
   $(`.ui.modal[data-modalName=${modalNameAttrStr}] .ui.checkbox`).removeClass("checked");
   $('input[type=checkbox]').prop('checked',false);
 
-  var numOfModalDropdown = $(`.ui.modal[data-modalName=${modalNameAttrStr}] .title.modalDropdown`).length // gets the number of modal dropdown elements
-  let dropdownClicks = 0b0; // going to use bit shifting
-  let dropdownClicksBoolean = new Array(numOfModalDropdown).fill(false)
-
   $(`.ui.modal[data-modalName=${modalNameAttrStr}]`).modal({
     allowMultipe: false,
     closable: false,
@@ -64,21 +60,9 @@ function recordModalInputs(modalNameAttrStr) {
           Voiceovers.playVoiceover(['CUSML.misc_05.mp3'])
           break;
       }
-
-      // OnClick Listening Events for dropdown triangles in digital-literacy_articleModal
-      if (modalNameAttrStr === 'digital-literacy_articleModal') {
-        $('.modalDropdown').on('click', function (event) {
-          dropdownClicksBoolean[event.target.id.replace(/\D/g, '') - 1] = true
-        });
-      }
     },
     onHide: function(){
       Voiceovers.pauseVoiceover();
-
-      // collapses all 'active' (open) accordion elements in digital-literacy_articleModal
-      $(`.ui.modal[data-modalName=${modalNameAttrStr}] .title.modalDropdown`).removeClass("active");
-      $(`.ui.modal[data-modalName=${modalNameAttrStr}] .content`).removeClass("active");
-
       const modalClosedTime = Date.now();
       const modalViewTime = modalClosedTime - modalOpenedTime;
       const modalName = $(this).attr('data-modalName');
@@ -93,16 +77,6 @@ function recordModalInputs(modalNameAttrStr) {
           checkboxInputs = checkboxInputs << 1;
         }
       });
-
-      dropdownClicksBoolean.forEach(function (element) {
-        if (element) {
-          console.log(element)
-          dropdownClicks = dropdownClicks << 1; // shift left and add 1 to mark true
-          dropdownClicks++;
-        } else {
-          dropdownClicks = dropdownClicks << 1; //shift left
-        }
-      });
       
        $.post("/feed", {
          actionType: 'free play',
@@ -113,8 +87,6 @@ function recordModalInputs(modalNameAttrStr) {
          modalViewTime: modalViewTime,
          modalCheckboxesCount: numberOfCheckboxes,
          modalCheckboxesInput: checkboxInputs,
-         modalDropdownCount: numOfModalDropdown,
-         modalDropdownClick: dropdownClicks,
          _csrf: $('meta[name="csrf-token"]').attr('content')
        });
     },

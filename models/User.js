@@ -179,9 +179,7 @@ const userSchema = new mongoose.Schema({
       modalOpenedTime: Number,
       modalViewTime: Number,
       modalCheckboxesCount: Number,
-      modalCheckboxesInput: Number,
-      modalDropdownCount: Number,
-      modalDropdownClick: Number,
+      modalCheckboxesInput: Number
     },{_id: false, versionKey: false })],
 
     //user created comment on an actor's post (fake post)
@@ -263,9 +261,7 @@ const userSchema = new mongoose.Schema({
       modalOpenedTime: Number,
       modalViewTime: Number,
       modalCheckboxesCount: Number,
-      modalCheckboxesInput: Number,
-      modalDropdownCount: Number,
-      modalDropdownClick: Number,
+      modalCheckboxesInput: Number
     },{_id: false, versionKey: false })],
 
     //user created comment on an actor's post (fake post)

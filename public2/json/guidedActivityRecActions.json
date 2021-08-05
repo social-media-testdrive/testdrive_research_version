@@ -66,8 +66,7 @@
                     "modalOpened": true
                 }, 
                 "digital-literacy_articleModal": {
-                    "modalOpened": true,
-                    "modalDropdownClick": "1111"
+                    "modalOpened": true
                 }
             }
         },
@@ -77,8 +76,7 @@
             "flagComments": [],
             "modals": {
                 "digital-literacy_articleModal": {
-                    "modalOpened": true,
-                    "modalDropdownClick": "1111"
+                    "modalOpened": true
                 },
                 "digital-literacy_flagModal":{
                     "modalCheckboxesInput": "01100"
