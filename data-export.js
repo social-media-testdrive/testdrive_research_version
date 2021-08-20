@@ -23,7 +23,7 @@ db.on('error', (err) => {
 });
 
 /*
-  Find the name of the class this user belongs to via their class access code.
+  Finds the name of the class this user belongs to via their class access code.
 */
 async function getClassNameForUser(user) {
   const classObject = await Class.findOne({accessCode: user.accessCode}).exec();
@@ -32,11 +32,15 @@ async function getClassNameForUser(user) {
 };
 
 /*
-  Gets the section data from the provided .json file.
-  Helper function for getTimeSpentPerSection().
+  Gets the data from the provided .json file.
+  Helper function for:
+  - getSectionInformation(user, module_name), 
+  - getrec_act_GACounts(user, module_name),
+  - getrec_act_FPCounts(user, module_name),
+  - getReflectionCheckboxAnswers(user, module_name)
   (Copied this function from the user controller).
 */
-async function getSectionJsonFromFile(filePath) {
+async function getJsonFromFile(filePath) {
   let readFilePromise = function(filePath) {
     return new Promise((resolve, reject) => {
       fs.readFile(filePath, (err, data) => {
@@ -47,16 +51,16 @@ async function getSectionJsonFromFile(filePath) {
       })
     })
   }
-  const sectionJsonBuffer = await readFilePromise(filePath).then(function(data) {
+  const JsonBuffer = await readFilePromise(filePath).then(function(data) {
     return data;
   });
-  let sectionJson;
+  let Json;
   try {
-    sectionJson = JSON.parse(sectionJsonBuffer);
+    Json = JSON.parse(JsonBuffer);
   } catch (err) {
     return next(err);
   }
-  return sectionJson;
+  return Json;
 }
 
 /*
@@ -138,6 +142,12 @@ function calculateAndModifyTimeSpent(sectionInformation, sectionJson, pageLog, m
     - pageLog is already sorted in order of increasing timestamps.
     - Sections are defined the same way as the progress bar, using
       progressDataA.json and progressDataB.json.
+  Note: 
+    - In the research site, the module progress bar is disabled. Therefore, 
+    the user is unable to intuitively jump between various module sections within 
+    the application. The only ways the user is able to is by 1) clicking the 
+    browser back/forward button [which will most likely be calculated as sequential section
+    jumps, even if it's not the user's intent] or 2) inputting the URL browser path.
   Parameters:
     - sectionInformation: Object - this is modified by this function, and will
         contain the final calculations.
@@ -229,8 +239,8 @@ async function getSectionInformation(user, module_name) {
   };
   const pageLog = user.pageLog;
   // Need to get the mappings between module pages and section numbers.
-  const sectionDataA = await getSectionJsonFromFile("./public2/json/progressDataA.json");
-  const sectionDataB = await getSectionJsonFromFile("./public2/json/progressDataB.json");
+  const sectionDataA = await getJsonFromFile("./public2/json/progressDataA.json");
+  const sectionDataB = await getJsonFromFile("./public2/json/progressDataB.json");
   /* Short example of the data in progressDataA and progressDataB:
     {
       "start": "1",
@@ -295,19 +305,8 @@ function getActivityCountsFP(user, module_name) {
     if (post.flagged) {
       activityCounts.flagCount++;
     }
-    // Increment commentCount if the user has created at least one comment on
-    // this post.
-    if (post.comments.length > 0) {
-      let createdAtLeastOneComment = false;
-      for (const comment of post.comments) {
-        if (comment.new_comment) {
-          createdAtLeastOneComment = true;
-        }
-      }
-      if (createdAtLeastOneComment) {
-        activityCounts.commentCount++;
-      }
-    }
+    // Set commentCount to the number of comments the user has made
+    activityCounts.commentCount = post.comments.length;
   }
   return activityCounts;
 };
@@ -379,7 +378,8 @@ function getReflectionAttemptCounts(user, module_name) {
 }
 
 /*
-  Determines the number of times the user clicks the “back” button on the text bubbles on the tutorial pages of given module
+  Determines the number of times the user clicks the “back” button on the text bubbles 
+  on the tutorial pages of a given module.
   Parameters:
     - user: Object - the user data from one study participant.
     - module_name: String - the module name to filter by.
@@ -434,7 +434,7 @@ function countSetBits(n) {
 */
 async function getrec_act_GACounts(user, module_name) {
   // get module recommended actions
-  const recActions = await getSectionJsonFromFile("./public2/json/guidedActivityRecActions.json")
+  const recActions = await getJsonFromFile("./public2/json/guidedActivityRecActions.json")
   // get user's guidedActivityActions (list of guidedActivityAction objects)
   const gaActions = user.guidedActivityAction;
 
@@ -492,6 +492,7 @@ async function getrec_act_GACounts(user, module_name) {
           continue; 
         }
 
+        // Checks to see if user left a comment on the post
         if (post_recAction["commentOnPost"]) {
           for (const commentObj of post_gaAction["comments"]) {
             if (commentObj["new_comment"]) { // code currently already doesn't allow a comment without text to be logged
@@ -501,10 +502,12 @@ async function getrec_act_GACounts(user, module_name) {
           }
         }
 
+        // Checks to see if user flagged the post
         if (post_recAction["flagPost"]){
           rec_act_GACounts += post_gaAction["flagged"] ? 1 : 0;
         }
 
+        // Checks to see if user flagged comments
         for (const commentID of post_recAction["flagComments"]){
           const comment = post_gaAction["comments"].find(commentObj => commentObj.comment === commentID);
           if (comment === undefined){ // User did not conduct any actions on the comment
@@ -513,6 +516,7 @@ async function getrec_act_GACounts(user, module_name) {
           rec_act_GACounts += comment["flagged"] ? 1 : 0;
         }
 
+        // Checks to see if user conducted recommended actions on modals
         for (var modalName in post_recAction["modals"]){
           const modal_recActions = post_recAction["modals"][modalName];
 
@@ -524,7 +528,7 @@ async function getrec_act_GACounts(user, module_name) {
           }
 
           for (var action in modal_recActions){
-            if (action === "modalDropdownClick" || action === "modalCheckboxesInput"){
+            if (action === "modalCheckboxesInput"){
               const rec_num = parseInt(modal_recActions[action], 2);
               const ga_num  = modal[action];
               rec_act_GACounts += countSetBits(rec_num & ga_num);
@@ -539,7 +543,7 @@ async function getrec_act_GACounts(user, module_name) {
 };
 
 /*
-  Find the ObjectID of the post
+  Finds the ObjectID of the post
   Parameters: 
     - post_id: Integer (defined in excel during population of database)
   Helper function for getrec_act_FPCounts()
@@ -551,7 +555,7 @@ async function getObjectIDForPost(post_id) {
 };
 
 /*
-  Find the ObjectID of the comment specified on post.
+  Finds the ObjectID of the comment specified on post.
   Parameters: 
     - post_id: Integer (defined in excel during population of database)
     - commentIndex: Integer indicating the number comment on post (ex: 1 = 1st comment on post)
@@ -562,6 +566,7 @@ async function getObjectIDForComment(post_id, commentIndex){
   const comment_objectID = scriptObject.comments[commentIndex-1]._id;
   return comment_objectID;
 }
+
 /*
   Determines the count of recommended actions the user takes in the FreePlay Activity section of a module
   Parameters:
@@ -572,7 +577,7 @@ async function getObjectIDForComment(post_id, commentIndex){
 */
 async function getrec_act_FPCounts(user, module_name) {
   // get module recommended actions
-  const recActions = await getSectionJsonFromFile("./public2/json/freeplayActivityRecActions.json");
+  const recActions = await getJsonFromFile("./public2/json/freeplayActivityRecActions.json");
   // get user's freeplay section Actions (list of feedAction objects)
   const fpActions = user.feedAction;
 
@@ -641,6 +646,7 @@ async function getrec_act_FPCounts(user, module_name) {
         continue;
       }
 
+      // Checks to see if user left a comment on the post
       if (post_recAction["commentOnPost"]) {
         for (const commentObj of post_fpAction["comments"]) {
           if (commentObj["new_comment"]) { // code currently already doesn't allow a comment without text to be logged
@@ -650,10 +656,12 @@ async function getrec_act_FPCounts(user, module_name) {
         }
       }
 
+      // Checks to see if user flagged the post
       if (post_recAction["flagPost"]) {
         rec_act_FPCounts += post_fpAction["flagged"] ? 1 : 0;
       }
 
+      // Checks to see if user flagged comments
       for (const commentIndex of post_recAction["flagComments"]) {
         const comment_ObjectID = await getObjectIDForComment(post_id, commentIndex);
         const comment = post_fpAction["comments"].find(commentObj => commentObj.comment.equals(comment_ObjectID))
@@ -663,6 +671,7 @@ async function getrec_act_FPCounts(user, module_name) {
         rec_act_FPCounts += comment["flagged"] ? 1 : 0
       }
 
+      // Checks to see if user conducted recommended actions on modals
       for (var modalName in post_recAction["modals"]) {
         const modal_recActions = post_recAction["modals"][modalName]
 
@@ -674,7 +683,7 @@ async function getrec_act_FPCounts(user, module_name) {
         }
 
         for (var action in modal_recActions) {
-          if (action === "modalDropdownClick" || action === "modalCheckboxesInput") {
+          if (action === "modalCheckboxesInput") {
             const rec_num = parseInt(modal_recActions[action], 2)
             const fp_num = modal[action]
             rec_act_FPCounts += countSetBits(rec_num & fp_num)
@@ -700,6 +709,62 @@ async function getrec_act_FPCounts(user, module_name) {
   return rec_act_FPCounts;
 };
 
+/*
+  Retrieves the (most recent) reflection answers from the user for the checkbox type questions 
+  in the module.
+  Parameters:
+    - user: Object - the user data from one study participant.
+    - module_name: String - the module name to filter by.
+  Returns:
+    - reflectionCheckboxAnswers: Object - object with properties giving reflection answers in binary form.
+    Ex: '0100' is a binary representation of the checkboxes for that question
+*/
+async function getReflectionCheckboxAnswers(user, module_name) {
+  const reflectionCheckboxAnswers = {
+    Q1: "N/A",
+    Q2: "N/A"
+  };
+
+  const reflectionSectionData = await getJsonFromFile("./public2/json/reflectionSectionData.json");
+
+  /* Example of reflectionAction 
+    absoluteTimeContinued: Date, //time that the user left the page by clicking continue
+    modual: String, //which lesson mod did this take place in?
+    questionNumber: String, // corresponds with reflectionSectionData.json, i.e. 'Q1', 'Q2', 'Q3'...
+    prompt: String,
+    type: String, // Which type of response this will be: written, checkbox, radio, habitsUnique
+    writtenResponse: String,
+    radioSelection: String, // this is for the presentation module
+    numberOfCheckboxes: Number,
+    checkboxResponse: Number,
+    checkedActualTime: Boolean, // this is unique to the habits module
+  */
+  const moduleReflectionActions = user.reflectionAction.filter(action => action.modual === module_name && action.type === 'checkbox');
+
+  /* In the event where a user has completed the reflection section twice (which
+    would not be typical), we only want to include the most recent attempt. 
+  */
+  const reflectionAttemptTimes = moduleReflectionActions.map(action => action.absoluteTimeContinued);
+  const mostRecentAttemptTime = reflectionAttemptTimes.sort((a,b) => b - a )[0];
+  const mostRecent_moduleReflectionActions = moduleReflectionActions.filter(action => action.absoluteTimeContinued.getTime() === mostRecentAttemptTime.getTime());
+  for (const reflectionResponse of mostRecent_moduleReflectionActions) {
+    const questionNumber = reflectionResponse.questionNumber;
+
+    const question = reflectionSectionData[module_name][questionNumber]
+    // need to append tab in front, in order for any leading zeros to show up on Excel
+    const checkboxResponse = reflectionResponse["checkboxResponse"].toString(2).padStart(reflectionResponse["numberOfCheckboxes"], '0')
+
+    if (question["type"] === "checkbox"){
+      reflectionCheckboxAnswers[questionNumber] = "\t"+ checkboxResponse
+    } else if (question["type"] === "checkboxGrouped"){
+      const subquestionLength = reflectionResponse["numberOfCheckboxes"]/question["groupCount"]
+      const regex = new RegExp(`.{1,${subquestionLength}}`, 'g');
+      reflectionCheckboxAnswers[questionNumber] = checkboxResponse.match(regex).join(", ")
+    }
+  }
+  return reflectionCheckboxAnswers;
+}
+
 async function getDataExport() {
   console.log(`Successfully connected to db.`)
   console.log(`Starting the data export script...`)
@@ -714,10 +779,10 @@ async function getDataExport() {
       {id: 'module_name', title: "Module_Name"},
       {id: 'class_name', title: 'Class_Name'},
       {id: 'username', title: 'Username'},
-      {id: 'time_spent_tt', title: 'Time_Spent_TT'},
-      {id: 'time_spent_ga', title: 'Time_Spent_GA'},
-      {id: 'time_spent_fp', title: 'Time_Spent_FP'},
-      {id: 'time_spent_rf', title: 'Time_Spent_RF'},
+      {id: 'time_spent_tt', title: 'Time_Spent_TT (in seconds)'},
+      {id: 'time_spent_ga', title: 'Time_Spent_GA (in seconds)'},
+      {id: 'time_spent_fp', title: 'Time_Spent_FP (in seconds)'},
+      {id: 'time_spent_rf', title: 'Time_Spent_RF (in seconds)'},
       {id: 'liked_post_fp', title: 'Liked_post_FP'},
       {id: 'flagged_post_fp', title: 'Flagged_post_FP'},
       {id: 'commented_post_fp', title: 'Commented_post_FP'},
@@ -732,6 +797,8 @@ async function getDataExport() {
       {id: 'back_tt', title: 'Back_TT'},
       {id: 'rec_act_ga', title: 'Rec_act_GA'},
       {id: 'rec_act_fp', title: 'Rec_act_FP' },
+      {id: 'checkbox_q1', title: 'Checkbox_Q1'},
+      {id: 'checkbox_q2', title: 'Checkbox_Q2'}
     ]
   });
   const records = [];
@@ -753,6 +820,7 @@ async function getDataExport() {
       const back_TTCounts = getback_TTCounts(user, assignedModule);
       const rec_act_GACounts = await getrec_act_GACounts(user, assignedModule);
       const rec_act_FPCounts = await getrec_act_FPCounts(user, assignedModule);
+      const reflectionCheckboxAnswers = await getReflectionCheckboxAnswers(user, assignedModule);
 
       record.module_name = assignedModule;
       record.time_spent_tt = sectionInformation.timeSpent.tt;
@@ -773,6 +841,8 @@ async function getDataExport() {
       record.back_tt = back_TTCounts;
       record.rec_act_ga = rec_act_GACounts;
       record.rec_act_fp = rec_act_FPCounts;
+      record.checkbox_q1 = reflectionCheckboxAnswers.Q1;
+      record.checkbox_q2 = reflectionCheckboxAnswers.Q2;
       records.push(record);
     }
   }
