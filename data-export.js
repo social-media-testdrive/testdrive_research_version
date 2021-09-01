@@ -413,7 +413,7 @@ function getback_TTCounts(user, module_name) {
 
 /*
   Determines the number of "1"s in number n (in binary representation)
-  Helper function for getrec_act_GACounts().
+  Helper function for getrec_act_GACounts(), getrec_act_FPCounts(), and getReflectionCheckboxAnswers().
 */
 function countSetBits(n) {
   var count = 0;
@@ -724,6 +724,7 @@ async function getReflectionCheckboxAnswers(user, module_name) {
     Q1: "N/A",
     Q2: "N/A"
   };
+  let numberCorrect = 0;
 
   const reflectionSectionData = await getJsonFromFile("./public2/json/reflectionSectionData.json");
 
@@ -747,22 +748,35 @@ async function getReflectionCheckboxAnswers(user, module_name) {
   const reflectionAttemptTimes = moduleReflectionActions.map(action => action.absoluteTimeContinued);
   const mostRecentAttemptTime = reflectionAttemptTimes.sort((a,b) => b - a )[0];
   const mostRecent_moduleReflectionActions = moduleReflectionActions.filter(action => action.absoluteTimeContinued.getTime() === mostRecentAttemptTime.getTime());
+  
   for (const reflectionResponse of mostRecent_moduleReflectionActions) {
     const questionNumber = reflectionResponse.questionNumber;
 
     const question = reflectionSectionData[module_name][questionNumber]
-    // need to append tab in front, in order for any leading zeros to show up on Excel
     const checkboxResponse = reflectionResponse["checkboxResponse"].toString(2).padStart(reflectionResponse["numberOfCheckboxes"], '0')
 
     if (question["type"] === "checkbox"){
+       // need to append tab in front, in order for any leading zeros to show up on Excel
       reflectionCheckboxAnswers[questionNumber] = "\t"+ checkboxResponse
+
+      // Check correctness of checkbox answer
+      const correctCheckboxResponse = parseInt(Object.values(question["correctResponses"]).join(''), 2)
+      numberCorrect += countSetBits(correctCheckboxResponse & reflectionResponse["checkboxResponse"])
     } else if (question["type"] === "checkboxGrouped"){
       const subquestionLength = reflectionResponse["numberOfCheckboxes"]/question["groupCount"]
-      const regex = new RegExp(`.{1,${subquestionLength}}`, 'g');
+      const regex = new RegExp(`.{1,${subquestionLength}}`, 'g'); //splits the string into sections of length subquestionLength
       reflectionCheckboxAnswers[questionNumber] = checkboxResponse.match(regex).join(", ")
+
+      // Check correctness of checkbox answer
+      let correctCheckboxResponse = ""
+      for (subquestion in question["correctResponses"]){
+        correctCheckboxResponse += Object.values(question["correctResponses"][subquestion]).join('')
+      }
+      correctCheckboxResponse = parseInt(correctCheckboxResponse, 2)
+      numberCorrect += countSetBits(correctCheckboxResponse & reflectionResponse["checkboxResponse"])
     }
   }
-  return reflectionCheckboxAnswers;
+  return [reflectionCheckboxAnswers, numberCorrect];
 }
 
 async function getDataExport() {
@@ -770,7 +784,7 @@ async function getDataExport() {
   console.log(`Starting the data export script...`)
   const currentDate = new Date();
   const outputFilename = `outomeEvaluation-dataExport`
-    +`.${currentDate.getMonth()}-${currentDate.getDate()}-${currentDate.getFullYear()}`
+    +`.${currentDate.getMonth()+1}-${currentDate.getDate()}-${currentDate.getFullYear()}`
     +`.${currentDate.getHours()}-${currentDate.getMinutes()}-${currentDate.getSeconds()}`;
   const outputFilepath = `outputFiles/exportData/${outputFilename}.csv`;
   const csvWriter = createCsvWriter({
@@ -798,7 +812,8 @@ async function getDataExport() {
       {id: 'rec_act_ga', title: 'Rec_act_GA'},
       {id: 'rec_act_fp', title: 'Rec_act_FP' },
       {id: 'checkbox_q1', title: 'Checkbox_Q1'},
-      {id: 'checkbox_q2', title: 'Checkbox_Q2'}
+      {id: 'checkbox_q2', title: 'Checkbox_Q2'},
+      {id: 'number_correct_checkbox', title: 'Number_Correct_Checkbox'}
     ]
   });
   const records = [];
@@ -820,7 +835,7 @@ async function getDataExport() {
       const back_TTCounts = getback_TTCounts(user, assignedModule);
       const rec_act_GACounts = await getrec_act_GACounts(user, assignedModule);
       const rec_act_FPCounts = await getrec_act_FPCounts(user, assignedModule);
-      const reflectionCheckboxAnswers = await getReflectionCheckboxAnswers(user, assignedModule);
+      const [reflectionCheckboxAnswers, numberCorrect] = await getReflectionCheckboxAnswers(user, assignedModule);
 
       record.module_name = assignedModule;
       record.time_spent_tt = sectionInformation.timeSpent.tt;
@@ -843,6 +858,7 @@ async function getDataExport() {
       record.rec_act_fp = rec_act_FPCounts;
       record.checkbox_q1 = reflectionCheckboxAnswers.Q1;
       record.checkbox_q2 = reflectionCheckboxAnswers.Q2;
+      record.number_correct_checkbox = numberCorrect;
       records.push(record);
     }
   }
