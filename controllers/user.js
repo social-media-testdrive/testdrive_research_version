@@ -1070,6 +1070,7 @@ The module has been completed. This will always be visible.
 "started"
 It will be visible, but may not be clickable
 depending on the time elapsed. It becomes unclickable 20 hours after starting.
+Outcome Evaluation #2: There is time limit to completing the module.
 */
 exports.getVisibleModules = (req, res, next) => {
   let visibleModules = [];
@@ -1091,24 +1092,24 @@ exports.getVisibleModules = (req, res, next) => {
     } else if (moduleStatus === "started") {
       // Need to check if it has been at least 20 hours since this
       // module's status changed to determine if clickable.
-       const lastChanged = req.user.moduleProgressTimestamps[assignedModule];
-       const currentTime = Date.now();
-       // 20 hours = 7.2e+7 milliseconds
-       if((currentTime - lastChanged) > 72000000) {
-         const visibleModule = {
-           name: assignedModule,
-           status: moduleStatus,
-           clickable: false
-         }
-         visibleModules.push(visibleModule);
-       } else {
+      //  const lastChanged = req.user.moduleProgressTimestamps[assignedModule];
+      //  const currentTime = Date.now();
+      //  // 20 hours = 7.2e+7 milliseconds
+      //  if((currentTime - lastChanged) > 72000000) {
+      //    const visibleModule = {
+      //      name: assignedModule,
+      //      status: moduleStatus,
+      //      clickable: false
+      //    }
+      //    visibleModules.push(visibleModule);
+      //  } else {
          const visibleModule = {
            name: assignedModule,
            status: moduleStatus,
            clickable: true
          }
          visibleModules.push(visibleModule);
-       }
+      //  }
     } else {
       // This module has not been started.
       if (i === 1) {
@@ -1126,15 +1127,18 @@ exports.getVisibleModules = (req, res, next) => {
         if (prevModStatusChangeTime === null) {
           // The previous module in the sequence has not been started, so this
           // module should not be shown at all.
-        } else {
+        } else { // The previous module has been started or completed
           // 20 hours = 7.2e+7 milliseconds
+          // 1 hour = 3.6e+6 milliseconds = 3600000
           const currentTime = Date.now();
-          if ((currentTime - prevModStatusChangeTime) >= 72000000) {
+          if ((currentTime - prevModStatusChangeTime) >= 3600000) {
+            // The previous module was completed/started over 1 hour ago.
             // The previous module was completed/started over 20 hours ago. Add
             // to visible Modules. Mark the status as "active", since this is
             // the module the student should see as available.
             pushVisibleModule(assignedModule, "active", visibleModules);
           } else {
+            // The previous module was completed/started less than 1 hour ago.
             // The previous module was completed/started less than 20 hours ago.
             // Only display this module if the previous module is "completed".
             const prevAssignedModuleNoDashes = prevAssignedModule.replace('-','');
