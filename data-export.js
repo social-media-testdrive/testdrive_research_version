@@ -509,7 +509,7 @@ async function getrec_act_GACounts(user, module_name) {
 
         // Checks to see if user flagged comments
         for (const commentID of post_recAction["flagComments"]){
-          const comment = post_gaAction["comments"].find(commentObj => commentObj.comment === commentID);
+          const comment = post_gaAction["comments"].find(commentObj => commentObj.comment !== undefined && commentObj.comment === commentID);
           if (comment === undefined){ // User did not conduct any actions on the comment
             continue;
           }
@@ -664,7 +664,7 @@ async function getrec_act_FPCounts(user, module_name) {
       // Checks to see if user flagged comments
       for (const commentIndex of post_recAction["flagComments"]) {
         const comment_ObjectID = await getObjectIDForComment(post_id, commentIndex);
-        const comment = post_fpAction["comments"].find(commentObj => commentObj.comment.equals(comment_ObjectID))
+        const comment = post_fpAction["comments"].find(commentObj => commentObj.comment !== undefined && commentObj.comment.equals(comment_ObjectID))
         if (comment === undefined) { // User did not conduct any actions on the comment
           continue;
         }
