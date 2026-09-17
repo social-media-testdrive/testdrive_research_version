@@ -1,7 +1,7 @@
 This is not the correct repository to use for new studies. 
 =======================
 
-There is a current study using code off of this repo, but going forward, the upstream repository is the new central codebase from which new research studies will be created.
+Please see for the most updated code: https://github.com/social-media-testdrive/truman_testdrive. Use environment variables to configure TestDrive for research purposes. 
 
 Truman Platform
 =======================
